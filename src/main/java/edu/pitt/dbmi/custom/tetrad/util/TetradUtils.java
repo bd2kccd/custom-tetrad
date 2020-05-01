@@ -20,6 +20,7 @@ package edu.pitt.dbmi.custom.tetrad.util;
 
 import edu.cmu.tetrad.bayes.BayesIm;
 import edu.cmu.tetrad.bayes.BayesPm;
+import edu.cmu.tetrad.bayes.DirichletBayesIm;
 import edu.cmu.tetrad.bayes.EmBayesEstimator;
 import edu.cmu.tetrad.data.DataModel;
 import edu.cmu.tetrad.data.DataSet;
@@ -52,6 +53,10 @@ public final class TetradUtils {
         });
 
         return new BayesPm(dag);
+    }
+
+    public static DirichletBayesIm createDirichletBayesIm(BayesPm bayesPm, double symmetricAlpha) {
+        return DirichletBayesIm.symmetricDirichletIm(bayesPm, symmetricAlpha);
     }
 
     public static BayesIm createEmBayesEstimator(DataModel dataModel, BayesPm bayesPm) {
