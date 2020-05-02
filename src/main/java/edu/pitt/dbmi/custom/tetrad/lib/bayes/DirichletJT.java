@@ -16,7 +16,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301  USA
  */
-package edu.pitt.dbmi.custom.tetrad.bayes;
+package edu.pitt.dbmi.custom.tetrad.lib.bayes;
 
 import edu.cmu.tetrad.bayes.BayesPm;
 import edu.cmu.tetrad.bayes.DirichletBayesIm;
@@ -25,7 +25,7 @@ import edu.cmu.tetrad.data.DataModel;
 import edu.cmu.tetrad.data.DataSet;
 import edu.cmu.tetrad.graph.Graph;
 import edu.cmu.tetrad.graph.Node;
-import edu.pitt.dbmi.custom.tetrad.util.TetradUtils;
+import edu.pitt.dbmi.custom.tetrad.lib.util.TetradUtils;
 import java.util.Arrays;
 
 /**

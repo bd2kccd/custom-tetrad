@@ -16,12 +16,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301  USA
  */
-package edu.pitt.dbmi.custom.tetrad.bayes;
+package edu.pitt.dbmi.custom.tetrad.lib.bayes;
 
 import edu.cmu.tetrad.data.DataModel;
 import edu.cmu.tetrad.graph.Graph;
-import edu.pitt.dbmi.custom.tetrad.util.FileUtils;
-import edu.pitt.dbmi.custom.tetrad.util.StringUtils;
+import edu.pitt.dbmi.custom.tetrad.lib.util.FileUtils;
+import edu.pitt.dbmi.custom.tetrad.lib.util.StringUtils;
 import java.io.IOException;
 import java.nio.file.Paths;
 import org.junit.jupiter.api.Disabled;
