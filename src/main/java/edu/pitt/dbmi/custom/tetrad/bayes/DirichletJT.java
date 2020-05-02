@@ -36,50 +36,83 @@ import java.util.Arrays;
  */
 public class DirichletJT {
 
-    private final DataSet dataSet;
-    private final BayesPm bayesPm;
-    private final DirichletBayesIm dirichletBayesIm;
-
-    /**
-     *
-     * @param graph Bayesian network
-     * @param dataModel data for the Bayesian network
-     * @param symmetricAlpha the value that all Dirichlet parameters are
-     * initially set to, which must be nonnegative, or Double.NaN if all
-     * parameters should be set initially to "unspecified."
-     */
-    public DirichletJT(Graph graph, DataModel dataModel, double symmetricAlpha) {
-        this.dataSet = (DataSet) dataModel;
-        this.bayesPm = TetradUtils.createBayesPm((DataSet) dataModel, graph);
-        this.dirichletBayesIm = TetradUtils.createDirichletBayesIm(bayesPm, symmetricAlpha);
+    public DirichletJT() {
     }
 
-    public double[][] estimateDoProb(int y, int x, int[] z) {
-        Node yNode = getNode(y);
-        Node xNode = getNode(x);
-        Node[] zNodes = getNodes(z);
+    public double[][] estimateDoProbAvg(int y, int x, int[] z, Graph graph, DataModel dataModel, double symmetricAlpha, int nSamples) {
+        BayesPm bayesPm = TetradUtils.createBayesPm(dataModel, graph);
+
+        Node yNode = getNode(y, bayesPm);
+        Node xNode = getNode(x, bayesPm);
+        Node[] zNodes = getNodes(z, bayesPm);
 
         int xDim = bayesPm.getNumCategories(xNode);
         int yDim = bayesPm.getNumCategories(yNode);
         double[][] results = new double[yDim][xDim];
 
+        DirichletBayesIm prior = DirichletBayesIm.symmetricDirichletIm(bayesPm, symmetricAlpha);
+        for (int n = 0; n < nSamples; n++) {
+            prior = DirichletEstimator.estimate(prior, (DataSet) dataModel);
+
+            JunctionTree jt = new JunctionTree(prior);
+            for (int yIndex = 0; yIndex < yDim; yIndex++) {
+                for (int xIndex = 0; xIndex < xDim; xIndex++) {
+                    double prob = 0;
+                    int cardinality = getCardinality(z, bayesPm);
+                    int size = zNodes.length;
+                    int[] values = new int[size];
+                    for (int i = 0; i < cardinality; i++) {
+                        int[] parents = combine(x, z);
+                        int[] parentValues = combine(xIndex, values);
+
+                        double zProbJoint = jt.getJointProbability(z, values);
+                        double condProb = jt.getConditionalProbability(y, yIndex, parents, parentValues);
+
+                        prob += zProbJoint * condProb;
+
+                        updateValues(size, values, zNodes, bayesPm);
+                    }
+                    results[yIndex][xIndex] += prob;
+                }
+            }
+        }
+
+        // compute average
+        for (double[] result : results) {
+            for (int j = 0; j < results.length; j++) {
+                result[j] /= nSamples;
+            }
+        }
+
+        return results;
+    }
+
+    public double[][] estimateDoProb(int y, int x, int[] z, BayesPm bayesPm, DirichletBayesIm bayesIm) {
+        Node yNode = getNode(y, bayesPm);
+        Node xNode = getNode(x, bayesPm);
+        Node[] zNodes = getNodes(z, bayesPm);
+
+        int xDim = bayesPm.getNumCategories(xNode);
+        int yDim = bayesPm.getNumCategories(yNode);
+        double[][] results = new double[yDim][xDim];
+
+        JunctionTree jt = new JunctionTree(bayesIm);
         for (int yIndex = 0; yIndex < yDim; yIndex++) {
             for (int xIndex = 0; xIndex < xDim; xIndex++) {
                 double prob = 0;
-                int cardinality = getCardinality(z);
+                int cardinality = getCardinality(z, bayesPm);
                 int size = zNodes.length;
                 int[] values = new int[size];
                 for (int i = 0; i < cardinality; i++) {
                     int[] parents = combine(x, z);
                     int[] parentValues = combine(xIndex, values);
 
-                    JunctionTree jt = new JunctionTree(DirichletEstimator.estimate(dirichletBayesIm, dataSet));
                     double zProbJoint = jt.getJointProbability(z, values);
                     double condProb = jt.getConditionalProbability(y, yIndex, parents, parentValues);
 
                     prob += zProbJoint * condProb;
 
-                    updateValues(size, values, zNodes);
+                    updateValues(size, values, zNodes, bayesPm);
                 }
                 results[yIndex][xIndex] = prob;
             }
@@ -97,7 +130,7 @@ public class DirichletJT {
         return combined;
     }
 
-    private void updateValues(int size, int[] values, Node[] nodes) {
+    private void updateValues(int size, int[] values, Node[] nodes, BayesPm bayesPm) {
         int j = size - 1;
         values[j]++;
         while (j >= 0 && values[j] == bayesPm.getNumCategories(nodes[j])) {
@@ -109,7 +142,7 @@ public class DirichletJT {
         }
     }
 
-    private int getCardinality(int[] nodes) {
+    private int getCardinality(int[] nodes, BayesPm bayesPm) {
         int count = 1;
 
         for (int node : nodes) {
@@ -119,13 +152,13 @@ public class DirichletJT {
         return count;
     }
 
-    private Node[] getNodes(int[] nodeIndices) {
+    private Node[] getNodes(int[] nodeIndices, BayesPm bayesPm) {
         return Arrays.stream(nodeIndices)
                 .mapToObj(bayesPm::getNode)
                 .toArray(Node[]::new);
     }
 
-    private Node getNode(int nodeIndex) {
+    private Node getNode(int nodeIndex, BayesPm bayesPm) {
         return bayesPm.getNode(nodeIndex);
     }
 
