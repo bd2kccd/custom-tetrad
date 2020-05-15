@@ -18,7 +18,6 @@
  */
 package edu.pitt.dbmi.custom.tetrad.lib.bayes;
 
-import edu.cmu.tetrad.bayes.BayesIm;
 import edu.cmu.tetrad.bayes.BayesPm;
 import edu.cmu.tetrad.bayes.DirichletBayesIm;
 import edu.cmu.tetrad.bayes.DirichletEstimator;
@@ -49,25 +48,23 @@ public class DirichletJTTest {
         DataModel dataModel = FileUtils.readDiscreteData(Paths.get(dataFile));
         Graph graph = FileUtils.readGraph(Paths.get(graphFile));
 
-        int x = 0;
-        int y = 1;
-        int z = 2;
-
         double symmetricAlpha = 1.0;
         BayesPm bayesPm = TetradUtils.createBayesPm(dataModel, graph);
-        BayesIm bayesIm = TetradUtils.createEmBayesEstimator(dataModel, bayesPm);
 
         DirichletBayesIm prior = DirichletBayesIm.symmetricDirichletIm(bayesPm, symmetricAlpha);
-        prior = DirichletEstimator.estimate(prior, (DataSet) dataModel);
+        DirichletBayesIm posterior = DirichletEstimator.estimate(prior, (DataSet) dataModel);
 
         System.out.println("================================================================================");
-        System.out.println(bayesIm);
+        System.out.println(posterior);
         System.out.println("--------------------------------------------------------------------------------");
-        int nSamples = 2;
+        int nSamples = 5;
         for (int n = 0; n < nSamples; n++) {
-            prior = DirichletSampler.estimate(prior, (DataSet) dataModel);
+            DirichletBayesIm sample = DirichletSampler.sampleFromPosterior(posterior);
+            System.out.println(sample);
+            System.out.println();
         }
-        System.out.println(prior);
+        System.out.println("--------------------------------------------------------------------------------");
+        System.out.println(posterior);
         System.out.println("================================================================================");
     }
 
@@ -113,12 +110,12 @@ public class DirichletJTTest {
         double symmetricAlpha = 1.0;
         BayesPm bayesPm = TetradUtils.createBayesPm(dataModel, graph);
         DirichletBayesIm prior = DirichletBayesIm.symmetricDirichletIm(bayesPm, symmetricAlpha);
+        DirichletBayesIm posterior = DirichletEstimator.estimate(prior, (DataSet) dataModel);
 
         System.out.println("================================================================================");
         DirichletJT djt = new DirichletJT();
         for (int n = 0; n < 2; n++) {
-            prior = DirichletEstimator.estimate(prior, (DataSet) dataModel);
-            double[][] prob = djt.estimateDoProb(y, x, new int[]{z}, bayesPm, prior);
+            double[][] prob = djt.estimateDoProb(y, x, new int[]{z}, bayesPm, DirichletSampler.sampleFromPosterior(posterior));
             for (int i = 0; i < prob.length; i++) {
                 for (int j = 0; j < prob.length; j++) {
                     System.out.printf("y=%d, x=%d: %f%n", i, j, prob[i][j]);

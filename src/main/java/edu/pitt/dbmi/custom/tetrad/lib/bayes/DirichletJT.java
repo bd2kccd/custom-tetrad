@@ -18,7 +18,6 @@
  */
 package edu.pitt.dbmi.custom.tetrad.lib.bayes;
 
-import edu.cmu.tetrad.bayes.BayesIm;
 import edu.cmu.tetrad.bayes.BayesPm;
 import edu.cmu.tetrad.bayes.DirichletBayesIm;
 import edu.cmu.tetrad.bayes.DirichletEstimator;
@@ -40,43 +39,6 @@ public class DirichletJT {
     public DirichletJT() {
     }
 
-    public double[][] estimateDoProbAvgTest(int y, int x, int[] z, Graph graph, DataModel dataModel, double symmetricAlpha, int nSamples) {
-        BayesPm bayesPm = TetradUtils.createBayesPm(dataModel, graph);
-
-        Node yNode = getNode(y, bayesPm);
-        Node xNode = getNode(x, bayesPm);
-        Node[] zNodes = getNodes(z, bayesPm);
-
-        int xDim = bayesPm.getNumCategories(xNode);
-        int yDim = bayesPm.getNumCategories(yNode);
-        double[][] results = new double[yDim][xDim];
-
-        BayesIm prior = TetradUtils.createEmBayesEstimator(dataModel, bayesPm);
-        JunctionTree jt = new JunctionTree(prior);
-        for (int yIndex = 0; yIndex < yDim; yIndex++) {
-            for (int xIndex = 0; xIndex < xDim; xIndex++) {
-                double prob = 0;
-                int cardinality = getCardinality(z, bayesPm);
-                int size = zNodes.length;
-                int[] values = new int[size];
-                for (int i = 0; i < cardinality; i++) {
-                    int[] parents = combine(x, z);
-                    int[] parentValues = combine(xIndex, values);
-
-                    double zProbJoint = jt.getJointProbability(z, values);
-                    double condProb = jt.getConditionalProbability(y, yIndex, parents, parentValues);
-
-                    prob += zProbJoint * condProb;
-
-                    updateValues(size, values, zNodes, bayesPm);
-                }
-                results[yIndex][xIndex] += prob;
-            }
-        }
-
-        return results;
-    }
-
     public double[][] estimateDoProbAvg(int y, int x, int[] z, Graph graph, DataModel dataModel, double symmetricAlpha, int nSamples) {
         BayesPm bayesPm = TetradUtils.createBayesPm(dataModel, graph);
 
@@ -89,11 +51,10 @@ public class DirichletJT {
         double[][] results = new double[yDim][xDim];
 
         DirichletBayesIm prior = DirichletBayesIm.symmetricDirichletIm(bayesPm, symmetricAlpha);
-        prior = DirichletEstimator.estimate(prior, (DataSet) dataModel);
-        for (int n = 0; n < nSamples; n++) {
-            prior = DirichletSampler.estimate(prior, (DataSet) dataModel);
+        DirichletBayesIm posterior = DirichletEstimator.estimate(prior, (DataSet) dataModel);
 
-            JunctionTree jt = new JunctionTree(prior);
+        for (int n = 0; n < nSamples; n++) {
+            JunctionTree jt = new JunctionTree(DirichletSampler.sampleFromPosterior(posterior));
             for (int yIndex = 0; yIndex < yDim; yIndex++) {
                 for (int xIndex = 0; xIndex < xDim; xIndex++) {
                     double prob = 0;
@@ -126,7 +87,7 @@ public class DirichletJT {
         return results;
     }
 
-    public double[][] estimateDoProb(int y, int x, int[] z, BayesPm bayesPm, DirichletBayesIm bayesIm) {
+    public double[][] estimateDoProb(int y, int x, int[] z, BayesPm bayesPm, DirichletBayesIm posterior) {
         Node yNode = getNode(y, bayesPm);
         Node xNode = getNode(x, bayesPm);
         Node[] zNodes = getNodes(z, bayesPm);
@@ -135,7 +96,7 @@ public class DirichletJT {
         int yDim = bayesPm.getNumCategories(yNode);
         double[][] results = new double[yDim][xDim];
 
-        JunctionTree jt = new JunctionTree(bayesIm);
+        JunctionTree jt = new JunctionTree(posterior);
         for (int yIndex = 0; yIndex < yDim; yIndex++) {
             for (int xIndex = 0; xIndex < xDim; xIndex++) {
                 double prob = 0;

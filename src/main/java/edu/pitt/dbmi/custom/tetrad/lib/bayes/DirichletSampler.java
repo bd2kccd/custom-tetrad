@@ -20,7 +20,6 @@ package edu.pitt.dbmi.custom.tetrad.lib.bayes;
 
 import edu.cmu.tetrad.bayes.BayesPm;
 import edu.cmu.tetrad.bayes.DirichletBayesIm;
-import edu.cmu.tetrad.data.DataSet;
 import edu.cmu.tetrad.graph.Node;
 import org.apache.commons.math3.distribution.GammaDistribution;
 import org.apache.commons.math3.random.JDKRandomGenerator;
@@ -37,35 +36,29 @@ public final class DirichletSampler {
     private DirichletSampler() {
     }
 
-    public static DirichletBayesIm estimate(DirichletBayesIm prior, DataSet dataSet) {
-        if (prior == null || dataSet == null) {
+    public static DirichletBayesIm sampleFromPosterior(DirichletBayesIm posterior) {
+        if (posterior == null) {
             throw new NullPointerException();
         }
 
-        // Create the posterior.
-        BayesPm bayesPm = prior.getBayesPm();
-        DirichletBayesIm posterior = DirichletBayesIm.blankDirichletIm(bayesPm);
+        BayesPm bayesPm = posterior.getBayesPm();
 
-        // loop over all nodes in prior.
-        for (int n = 0; n < prior.getNumNodes(); ++n) {
-            Node node = prior.getNode(n);
-            for (int row = 0; row < prior.getNumRows(n); row++) {
+        DirichletBayesIm sample = DirichletBayesIm.blankDirichletIm(bayesPm);
+        for (int n = 0; n < posterior.getNumNodes(); ++n) {
+            Node node = posterior.getNode(n);
+            for (int row = 0; row < posterior.getNumRows(n); row++) {
                 int numCategories = bayesPm.getNumCategories(node);
                 for (int i = 0; i < numCategories; ++i) {
-                    double pseudocount = prior.getPseudocount(n, row, i);
+                    double pseudocount = posterior.getPseudocount(n, row, i);
 
                     RandomGenerator randGen = new JDKRandomGenerator((int) System.currentTimeMillis());
                     GammaDistribution gammaDistrib = new GammaDistribution(randGen, pseudocount, 1.0);
-                    double value = gammaDistrib.sample();
-                    posterior.setPseudocount(n, row, i, value);
-
-//                    System.out.printf("pseudocount: %f, value: %f%n", pseudocount, value);
+                    sample.setPseudocount(n, row, i, gammaDistrib.sample());
                 }
             }
         }
-//        System.out.println();
 
-        return posterior;
+        return sample;
     }
 
 }
