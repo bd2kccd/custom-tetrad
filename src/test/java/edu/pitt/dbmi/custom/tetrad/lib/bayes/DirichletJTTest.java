@@ -18,6 +18,7 @@
  */
 package edu.pitt.dbmi.custom.tetrad.lib.bayes;
 
+import edu.cmu.tetrad.bayes.BayesIm;
 import edu.cmu.tetrad.bayes.BayesPm;
 import edu.cmu.tetrad.bayes.DirichletBayesIm;
 import edu.cmu.tetrad.bayes.DirichletEstimator;
@@ -37,9 +38,40 @@ import org.junit.jupiter.api.Test;
  *
  * @author Kevin V. Bui (kvb2@pitt.edu)
  */
-@Disabled
 public class DirichletJTTest {
 
+    @Disabled
+    @Test
+    public void testDirichletSampler() throws IOException {
+        String graphFile = this.getClass().getResource("/data/dirichlet/graph.txt").getFile();
+        String dataFile = this.getClass().getResource("/data/dirichlet/data.txt").getFile();
+
+        DataModel dataModel = FileUtils.readDiscreteData(Paths.get(dataFile));
+        Graph graph = FileUtils.readGraph(Paths.get(graphFile));
+
+        int x = 0;
+        int y = 1;
+        int z = 2;
+
+        double symmetricAlpha = 1.0;
+        BayesPm bayesPm = TetradUtils.createBayesPm(dataModel, graph);
+        BayesIm bayesIm = TetradUtils.createEmBayesEstimator(dataModel, bayesPm);
+
+        DirichletBayesIm prior = DirichletBayesIm.symmetricDirichletIm(bayesPm, symmetricAlpha);
+        prior = DirichletEstimator.estimate(prior, (DataSet) dataModel);
+
+        System.out.println("================================================================================");
+        System.out.println(bayesIm);
+        System.out.println("--------------------------------------------------------------------------------");
+        int nSamples = 2;
+        for (int n = 0; n < nSamples; n++) {
+            prior = DirichletSampler.estimate(prior, (DataSet) dataModel);
+        }
+        System.out.println(prior);
+        System.out.println("================================================================================");
+    }
+
+    @Disabled
     @Test
     public void testestimateDoProbAvg() throws IOException {
         String graphFile = this.getClass().getResource("/data/dirichlet/graph.txt").getFile();
@@ -52,9 +84,9 @@ public class DirichletJTTest {
         int y = 1;
         int z = 2;
 
+        System.out.println("================================================================================");
         double symmetricAlpha = 1.0;
-        int nSamples = 3;
-
+        int nSamples = 10;
         DirichletJT djt = new DirichletJT();
         double[][] avgProb = djt.estimateDoProbAvg(y, x, new int[]{z}, graph, dataModel, symmetricAlpha, nSamples);
         for (int i = 0; i < avgProb.length; i++) {
@@ -62,8 +94,10 @@ public class DirichletJTTest {
                 System.out.printf("y=%d, x=%d: %f%n", i, j, avgProb[i][j]);
             }
         }
+        System.out.println("================================================================================");
     }
 
+    @Disabled
     @Test
     public void testEstimateDoProb() throws IOException {
         String graphFile = this.getClass().getResource("/data/dirichlet/graph.txt").getFile();
@@ -80,6 +114,7 @@ public class DirichletJTTest {
         BayesPm bayesPm = TetradUtils.createBayesPm(dataModel, graph);
         DirichletBayesIm prior = DirichletBayesIm.symmetricDirichletIm(bayesPm, symmetricAlpha);
 
+        System.out.println("================================================================================");
         DirichletJT djt = new DirichletJT();
         for (int n = 0; n < 2; n++) {
             prior = DirichletEstimator.estimate(prior, (DataSet) dataModel);
@@ -91,6 +126,7 @@ public class DirichletJTTest {
             }
             System.out.println();
         }
+        System.out.println("================================================================================");
     }
 
 }
