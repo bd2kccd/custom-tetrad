@@ -456,6 +456,72 @@ public class JunctionTree {
         return getConditionalProbabilities(iNode, parents, parentValues)[value];
     }
 
+    public ProbabilityDistribution getConditionalProbabilities(int[] nodes, int[] parents, int[] parentValues) {
+        validate(nodes);
+        validate(parents, parentValues);
+
+        for (int i = 0; i < parents.length; i++) {
+            setEvidence(parents[i], parentValues[i]);
+        }
+
+        Arrays.sort(nodes);
+        Set<Node> nodeSet = Arrays.stream(nodes)
+                .mapToObj(i -> graphNodes[i])
+                .collect(Collectors.toSet());
+        Node[] vars = nodeSet.toArray(new Node[nodeSet.size()]);
+        int cardinality = getCardinality(nodeSet);
+        int size = nodes.length;
+        int[] nodeVals = new int[size];
+        int[][] values = new int[cardinality][size];
+        double[] probabilities = new double[cardinality];
+        for (int i = 0; i < cardinality; i++) {
+            System.arraycopy(nodeVals, 0, values[i], 0, size);
+
+            probabilities[i] = 1;
+            for (int j = 0; j < nodes.length; j++) {
+                double[] marg = margins[nodes[j]];
+
+                double[] condProbs = new double[marg.length];
+                System.arraycopy(marg, 0, condProbs, 0, marg.length);
+                normalize(condProbs);
+
+                probabilities[i] *= condProbs[nodeVals[j]];
+            }
+
+            updateValues(size, nodeVals, vars);
+        }
+
+        // reset
+        initialize();
+
+        return new ProbabilityDistribution(values, probabilities);
+    }
+
+    public double getConditionalProbabilities(int[] nodes, int[] values, int[] parents, int[] parentValues) {
+        validate(nodes, values);
+        validate(parents, parentValues);
+
+        for (int i = 0; i < parents.length; i++) {
+            setEvidence(parents[i], parentValues[i]);
+        }
+
+        double prob = 1;
+        for (int i = 0; i < nodes.length; i++) {
+            double[] marg = margins[nodes[i]];
+
+            double[] condProbs = new double[marg.length];
+            System.arraycopy(marg, 0, condProbs, 0, marg.length);
+            normalize(condProbs);
+
+            prob *= condProbs[values[i]];
+        }
+
+        // reset
+        initialize();
+
+        return prob;
+    }
+
     /**
      * Get the joint probability of all nodes (variables). Given the nodes are
      * X1, X2,...,Xn, then nodeValues[0] = value(X1), nodeValues[1] =
@@ -501,7 +567,7 @@ public class JunctionTree {
         }
     }
 
-    public JointProbabilityDistribution getJointProbabilityDistribution(int[] nodes) {
+    public ProbabilityDistribution getJointProbabilityDistribution(int[] nodes) {
         validate(nodes);
         if (isAllNodes(nodes)) {
             return getJointProbabilityDistribution();
@@ -523,11 +589,11 @@ public class JunctionTree {
                 updateValues(size, nodeVals, vars);
             }
 
-            return new JointProbabilityDistribution(values, probabilities);
+            return new ProbabilityDistribution(values, probabilities);
         }
     }
 
-    public JointProbabilityDistribution getJointProbabilityDistribution() {
+    public ProbabilityDistribution getJointProbabilityDistribution() {
         int cardinality = getCardinality(Arrays.stream(graphNodes).collect(Collectors.toSet()));
         int size = graphNodes.length;
         int[] vals = new int[size];
@@ -540,7 +606,7 @@ public class JunctionTree {
             updateValues(size, vals, graphNodes);
         }
 
-        return new JointProbabilityDistribution(values, probabilities);
+        return new ProbabilityDistribution(values, probabilities);
     }
 
     public double[] getMarginalProbability(int iNode) {
@@ -934,13 +1000,13 @@ public class JunctionTree {
 
     }
 
-    public class JointProbabilityDistribution {
+    public class ProbabilityDistribution {
 
         private final int[][] values;
 
         private final double[] probabilities;
 
-        public JointProbabilityDistribution(int[][] values, double[] probabilities) {
+        public ProbabilityDistribution(int[][] values, double[] probabilities) {
             this.values = values;
             this.probabilities = probabilities;
         }
