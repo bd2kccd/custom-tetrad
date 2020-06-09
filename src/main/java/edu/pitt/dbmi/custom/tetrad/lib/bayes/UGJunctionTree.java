@@ -133,8 +133,6 @@ public class UGJunctionTree {
             }
         }
 
-        System.out.println(undirectedGraph);
-
         // get set of cliques
         computeMaximumCardinalityOrdering(undirectedGraph, maxCardOrdering);
         Map<Node, Set<Node>> cliques = GraphTools.getCliques(maxCardOrdering, undirectedGraph);

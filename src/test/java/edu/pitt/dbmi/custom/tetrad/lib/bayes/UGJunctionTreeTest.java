@@ -40,6 +40,70 @@ public class UGJunctionTreeTest {
 
     @Disabled
     @Test
+    public void testUnconnectedGraphs2() throws IOException {
+        String graphFile = this.getClass().getResource("/data/unconnect_graph2/graph.txt").getFile();
+        String dataFile = this.getClass().getResource("/data/unconnect_graph2/data.txt").getFile();
+
+        DataModel dataModel = FileUtils.readDiscreteData(Paths.get(dataFile));
+        Graph graph = FileUtils.readGraph(Paths.get(graphFile));
+
+        BayesPm bayesPm = TetradUtils.createBayesPm(dataModel, graph);
+        BayesIm bayesIm = TetradUtils.createEmBayesEstimator(dataModel, bayesPm);
+
+        JunctionTree jt = new JunctionTree(bayesIm);
+        UGJunctionTree ugjt = new UGJunctionTree(bayesIm);
+
+        System.out.println("================================================================================");
+        System.out.println(graph);
+        System.out.println("================================================================================");
+        System.out.println(jt);
+        System.out.println("================================================================================");
+        System.out.println(ugjt);
+        System.out.println("================================================================================");
+
+        int x1 = bayesIm.getNodeIndex(bayesIm.getNode("X1"));
+        int x2 = bayesIm.getNodeIndex(bayesIm.getNode("X2"));
+        int x3 = bayesIm.getNodeIndex(bayesIm.getNode("X3"));
+        int x4 = bayesIm.getNodeIndex(bayesIm.getNode("X4"));
+        int x5 = bayesIm.getNodeIndex(bayesIm.getNode("X5"));
+
+        System.out.println("================================================================================");
+        int[] nodes = new int[]{x3, x4};
+        int[] parents = new int[]{x1};
+        int[] parentValues = new int[]{0};
+        System.out.println("P(X3,X4|X1)");
+        System.out.println("--------------------------------------------------------------------------------");
+        JunctionTree.ProbabilityDistribution jtPd = jt.getConditionalProbabilities(nodes, parents, parentValues);
+        print(jtPd.getValues(), jtPd.getProbabilities());
+
+        System.out.println();
+
+        UGJunctionTree.ProbabilityDistribution ugjtPd = ugjt.getConditionalProbabilities(nodes, parents, parentValues);
+        print(ugjtPd.getValues(), ugjtPd.getProbabilities());
+
+        System.out.println();
+        System.out.println();
+        System.out.println("P(X4,X5)");
+        System.out.println("--------------------------------------------------------------------------------");
+        double[] margProbs = jt.getMarginalProbability(x4);
+        System.out.printf("X4: %s%n", StringUtils.strValueArray(margProbs, " "));
+
+        margProbs = jt.getMarginalProbability(x5);
+        System.out.printf("X5: %s%n", StringUtils.strValueArray(margProbs, " "));
+        System.out.println("--------------------------------------------------------------------------------");
+        nodes = new int[]{x4, x5};
+        jtPd = jt.getJointProbabilityDistribution(nodes);
+        print(jtPd.getValues(), jtPd.getProbabilities());
+
+        System.out.println();
+
+        ugjtPd = ugjt.getJointProbabilityDistribution(nodes);
+        print(ugjtPd.getValues(), ugjtPd.getProbabilities());
+        System.out.println("================================================================================");
+    }
+
+    @Disabled
+    @Test
     public void testUnconnectedGraphs() throws IOException {
         String graphFile = this.getClass().getResource("/data/unconnect_graph/graph.txt").getFile();
         String dataFile = this.getClass().getResource("/data/unconnect_graph/data.txt").getFile();
