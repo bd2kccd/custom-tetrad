@@ -28,6 +28,7 @@ import edu.cmu.tetrad.graph.Dag;
 import edu.cmu.tetrad.graph.Edge;
 import edu.cmu.tetrad.graph.Endpoint;
 import edu.cmu.tetrad.graph.Graph;
+import edu.cmu.tetrad.graph.GraphUtils;
 import edu.cmu.tetrad.graph.Node;
 import edu.cmu.tetrad.util.TetradSerializable;
 import java.util.Arrays;
@@ -41,12 +42,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
+ * Junction Tree for unconnected graphs.
  *
- * Apr 30, 2020 3:58:25 PM
+ * Jun 5, 2020 11:50:18 AM
  *
  * @author Kevin V. Bui (kvb2@pitt.edu)
  */
-public class JunctionTree {
+public class UGJunctionTree {
 
     private final TreeNode root;
 
@@ -58,7 +60,7 @@ public class JunctionTree {
     private final BayesIm bayesIm;
     private final Map<Node, TreeNode> treeNodes;
 
-    public JunctionTree(Graph graph, DataModel dataModel) {
+    public UGJunctionTree(Graph graph, DataModel dataModel) {
         this.bayesPm = createBayesPm(dataModel, graph);
         this.bayesIm = createBayesIm(dataModel, this.bayesPm);
         this.treeNodes = new HashMap<>();
@@ -72,7 +74,7 @@ public class JunctionTree {
         initialize();
     }
 
-    public JunctionTree(BayesIm bayesIm) {
+    public UGJunctionTree(BayesIm bayesIm) {
         this.bayesPm = bayesIm.getBayesPm();
         this.bayesIm = bayesIm;
         this.treeNodes = new HashMap<>();
@@ -113,6 +115,23 @@ public class JunctionTree {
         // triangulate
         computeMaximumCardinalityOrdering(undirectedGraph, maxCardOrdering);
         GraphTools.fillIn(undirectedGraph, maxCardOrdering);
+
+        List<List<Node>> connectedComponents = GraphUtils.connectedComponents(undirectedGraph);
+        Node n1 = null;
+        Node n2 = null;
+        for (List<Node> nodes : connectedComponents) {
+            if (n1 == null) {
+                n1 = nodes.get(0);
+            } else if (n2 == null) {
+                n2 = nodes.get(0);
+            }
+
+            if (!(n1 == null || n2 == null)) {
+                undirectedGraph.addUndirectedEdge(n1, n2);
+                n1 = n2;
+                n2 = null;
+            }
+        }
 
         // get set of cliques
         computeMaximumCardinalityOrdering(undirectedGraph, maxCardOrdering);
